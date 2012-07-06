@@ -48,6 +48,10 @@ class Unicorn::Configurator
     :rewindable_input => true, # for Rack 2.x: (Rack::VERSION[0] <= 1),
     :client_body_buffer_size => Unicorn::Const::MAX_BODY,
     :trust_x_forwarded => true,
+    :before_worker_quit => nil,
+    :after_worker_quit => nil,
+    :before_worker_usr1 => nil,
+    :after_worker_usr1 => nil
   }
   #:startdoc:
 
@@ -201,6 +205,58 @@ class Unicorn::Configurator
   # for more information.
   def worker_processes(nr)
     set_int(:worker_processes, nr, 1)
+  end
+
+  # sets before_worker_quit hook to a given block.  This block will be called by
+  # he worker before it receives a unix QUIT signal and before has completed its standard set of operations.
+  # The following is an example hook which adds
+  # a per-process listener to every worker:
+  #
+  #  before_worker_quit do |server,worker|
+  #    # per-process listener ports for debugging/admin:
+  #    # some code that should execute before the main block in the worker SIGQUIT handler
+  #  end
+  def before_worker_quit
+    set_hook(:before_worker_quit, block_given? ? block : args[0])
+  end
+
+  # sets after_worker_quit hook to a given block.  This block will be called by
+  # the worker after it receives a unix QUIT signal and has completed its standard set of operations.
+  # The following is an example hook which adds
+  # a per-process listener to every worker:
+  #
+  #  after_worker_quit do |server,worker|
+  #    # per-process listener ports for debugging/admin:
+  #    # some code that should execute after the main block in the worker SIGQUIT handler
+  #  end
+  def after_worker_quit
+    set_hook(:after_worker_quit, block_given? ? block : args[0])
+  end
+
+  # sets before_worker_usr1 hook to a given block.  This block will be called by
+  # the worker after it receives a unix USR1 signal and before it has completed its standard set of operations.
+  # The following is an example hook which adds
+  # a per-process listener to every worker:
+  #
+  #  before_worker_usr1 do |server,worker|
+  #    # per-process listener ports for debugging/admin:
+  #    # some code that should execute before the main block in the worker SIGUSR1 handler
+  #  end
+  def before_worker_usr1
+    set_hook(:before_worker_usr1, block_given? ? block : args[0])
+  end
+
+  # sets after_worker_usr1 hook to a given block.  This block will be called by
+  # the worker after it receives a unix USR1 signal and has completed its standard set of operations.
+  # The following is an example hook which adds
+  # a per-process listener to every worker:
+  #
+  #  after_worker_usr1 do |server,worker|
+  #    # per-process listener ports for debugging/admin:
+  #    # some code that should execute after the main block in the worker SIGUSR1 handler
+  #  end
+  def after_worker_usr1
+    set_hook(:after_worker_usr1, block_given? ? block : args[0])
   end
 
   # sets listeners to the given +addresses+, replacing or augmenting the

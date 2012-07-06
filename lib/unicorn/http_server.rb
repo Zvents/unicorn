@@ -16,7 +16,9 @@ class Unicorn::HttpServer
                 :before_fork, :after_fork, :before_exec,
                 :listener_opts, :preload_app,
                 :reexec_pid, :orig_app, :init_listeners,
-                :master_pid, :config, :ready_pipe, :user
+                :master_pid, :config, :ready_pipe, :user,
+                :before_worker_quit, :after_worker_quit,
+                :before_worker_usr1, :after_worker_usr1
   attr_reader :pid, :logger
   include Unicorn::SocketHelper
   include Unicorn::HttpResponse
@@ -592,8 +594,8 @@ class Unicorn::HttpServer
     ready = l.dup
 
     # closing anything we IO.select on will raise EBADF
-    trap(:USR1) { nr = -65536; SELF_PIPE[0].close rescue nil }
-    trap(:QUIT) { worker = nil; LISTENERS.each { |s| s.close rescue nil }.clear }
+    trap(:USR1) { before_usr1(worker); nr = -65536; SELF_PIPE[0].close; after_usr1(worker) rescue nil }
+    trap(:QUIT) { before_quit(worker); worker = nil; LISTENERS.each { |s| s.close rescue nil }.clear; after_quit(worker) }
     logger.info "worker=#{worker.nr} ready"
 
     begin
@@ -740,5 +742,29 @@ class Unicorn::HttpServer
     end
     config_listeners.each { |addr| listen(addr) }
     raise ArgumentError, "no listeners" if LISTENERS.empty?
+  end
+
+  def before_quit(worker)
+    if self.before_worker_quit && self.before_worker_quit.respond_to?(:call)
+      self.before_worker_quit.call(self,worker.nr)
+    end
+  end
+
+  def after_quit(worker)
+    if self.after_worker_quit && self.after_worker_quit.respond_to?(:call)
+      self.after_worker_quit.call(self,worker.nr)
+    end
+  end
+
+  def before_usr1(worker)
+    if self.before_worker_usr1 && self.before_worker_usr1.respond_to?(:call)
+      self.before_worker_usr1.call(self,worker.nr)
+    end
+  end
+
+  def after_usr1(worker)
+    if self.after_worker_usr1 && self.after_worker_usr1.respond_to?(:call)
+      self.after_worker_usr1.call(self,worker.nr)
+    end
   end
 end
