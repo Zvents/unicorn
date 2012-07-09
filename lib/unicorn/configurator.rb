@@ -52,7 +52,6 @@ class Unicorn::Configurator
     :after_worker_quit => nil,
     :before_worker_usr1 => nil,
     :after_worker_usr1 => nil
-  }
   #:startdoc:
 
   def initialize(defaults = {}) #:nodoc:
